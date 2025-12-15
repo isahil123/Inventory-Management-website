@@ -4,7 +4,7 @@ const { MongoClient } = require("mongodb");
 
 // Connection URL
 
-const url = "mongodb+srv://sahil05:Ruksana123@nexusarmy.0a6ovzq.mongodb.net/";
+const url = "mongodb+srv://sahil05:<password>@nexusarmy.0a6ovzq.mongodb.net/";
 
 const client = new MongoClient(url);
 
