@@ -1,60 +1,102 @@
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// Generate Token Helper
-const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "1d" });
-};
-
-// 1. REGISTER USER (New)
+// 1. REGISTER USER (With Security Checks)
 const registerUser = async (req, res) => {
-  const { email, password, role } = req.body; // Role can be 'admin' or 'user'
+  // We now accept 'secretKey' from the frontend
+  const { username, email, password, role, secretKey } = req.body;
 
   try {
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
+    // --- 🛡️ SECURITY CHECK 1: Password Strength ---
+    if (password.length < 6) {
+      return res
+        .status(400)
+        .json({ msg: "Password must be at least 6 characters long." });
     }
 
-    // Create new user (In production, you'd hash the password here)
-    const user = await User.create({
+    // --- 🛡️ SECURITY CHECK 2: Admin "Secret Key" ---
+    // If someone selects "Admin" in the dropdown, they MUST know the code.
+    if (role === "admin") {
+      const COMPANY_SECRET = "BOSSMAN_2025"; // <--- The Secret Password
+      if (secretKey !== COMPANY_SECRET) {
+        return res.status(400).json({
+          msg: "Invalid Secret Key! You are not authorized to be Admin.",
+        });
+      }
+    }
+
+    // Check if user already exists
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ msg: "User already exists" });
+    }
+
+    // Create the new user
+    user = new User({
+      username: username || "Engineer", // Default name if they forget
       email,
       password,
-      role: role || "user", // Default to user if no role selected
+      role: role || "staff",
     });
 
-    if (user) {
-      res.status(201).json({
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user._id, user.role),
-      });
-    }
-  } catch (error) {
-    res.status(400).json({ message: "Invalid user data" });
+    // Encrypt Password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+
+    // Save to DB
+    await user.save();
+
+    // Create Token
+    const payload = { user: { id: user.id, role: user.role } };
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET || "secret123",
+      { expiresIn: "1h" },
+      (err, token) => {
+        if (err) throw err;
+        // ✅ CRITICAL: We send 'username' and 'role' back to the frontend
+        res.json({ token, role: user.role, username: user.username });
+      }
+    );
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
   }
 };
 
-// 2. LOGIN USER (Existing)
+// 2. LOGIN USER
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
-
-    if (user && user.password === password) {
-      res.json({
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user._id, user.role),
-      });
-    } else {
-      res.status(401).json({ message: "Invalid email or password" });
+    // Check User
+    let user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ msg: "Invalid Credentials" });
     }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+
+    // Check Password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ msg: "Invalid Credentials" });
+    }
+
+    // Create Token
+    const payload = { user: { id: user.id, role: user.role } };
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET || "secret123",
+      { expiresIn: "1h" },
+      (err, token) => {
+        if (err) throw err;
+        // ✅ CRITICAL: We send 'username' and 'role' back here too!
+        res.json({ token, role: user.role, username: user.username });
+      }
+    );
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
   }
 };
 

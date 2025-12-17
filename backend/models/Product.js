@@ -1,27 +1,32 @@
 const mongoose = require("mongoose");
 
-const productSchema = new mongoose.Schema({
+const ProductSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    trim: true,
   },
-  category: {
+  sku: {
     type: String,
     required: true,
+    unique: true,
+    uppercase: true,
+    trim: true,
   },
   quantity: {
     type: Number,
     required: true,
-    default: 0,
+    min: 0,
   },
   price: {
     type: Number,
     required: true,
+    min: 0,
   },
-  image: {
-    type: String,
-    default: "https://placehold.co/400", // Default image if none provided
+  date: {
+    type: Date,
+    default: Date.now,
   },
 });
 
-module.exports = mongoose.model("Product", productSchema);
+module.exports = mongoose.model("Product", ProductSchema);
