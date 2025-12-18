@@ -9,16 +9,19 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Database Connection
+// --- DATABASE CONNECTION ---
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
+  .then(() => console.log("✅ MongoDB Connected")) // 👈 Yahan semicolon hata diya
   .catch((err) => console.log("❌ DB Connection Error:", err));
 
 // --- ROUTES ---
-// We use the route files because they contain the Security Logic (Auth Middleware)
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/products", require("./routes/products"));
+
+// 🌟 YAHAN ADD KARO (Order Route)
+// Isse /api/orders/my-orders wala 404 error solve ho jayega
+app.use("/api/orders", require("./routes/orderRoutes"));
 
 // Start Server
 const PORT = process.env.PORT || 5000;

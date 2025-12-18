@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
-  }, // Added username because your Register page sends it
+  },
   email: {
     type: String,
     required: true,
@@ -16,9 +16,9 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    // 👇 UPDATED: Added 'staff' and 'manager' to the allowed list
-    enum: ["admin", "user", "staff", "manager"],
-    default: "staff",
+    // ✅ Updated this line
+    enum: ["admin", "user", "staff", "manager", "buyer"],
+    default: "buyer",
   },
 });
 
