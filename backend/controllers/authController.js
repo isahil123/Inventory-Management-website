@@ -2,7 +2,7 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// 1. REGISTER USER (With Security Checks)
+
 const registerUser = async (req, res) => {
   // We now accept 'secretKey' from the frontend
   const { username, email, password, role, secretKey } = req.body;
